@@ -106,6 +106,7 @@ func Provider() terraform.ResourceProvider {
 		DataSourcesMap: map[string]*schema.Resource{
 			"wallarm_node":            dataSourceWallarmNode(),
 			"wallarm_security_issues": dataSourceWallarmSecurityIssues(),
+			"wallarm_hits":            dataSourceWallarmHits(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
