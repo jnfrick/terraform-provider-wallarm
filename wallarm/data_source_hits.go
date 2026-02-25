@@ -366,11 +366,17 @@ func dataSourceWallarmHitsRead(d *schema.ResourceData, m interface{}) error {
 			return fmt.Errorf("error fetching related hits for attack_id %s: %s", aid, err)
 		}
 
+		seen := make(map[string]bool)
 		groupHits := make([]interface{}, 0, len(relAPIHits))
 		for _, h := range relAPIHits {
 			if nonAttackHitTypes[h.Type] {
 				continue
 			}
+			key := hitDedupeKey(h)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
 			groupHits = append(groupHits, buildHitMap(h))
 		}
 
@@ -384,6 +390,16 @@ func dataSourceWallarmHitsRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("error setting related_hits: %s", err)
 	}
 	return nil
+}
+
+// hitDedupeKey returns a string key that uniquely identifies a hit by its
+// path, point (request location), and stamps (attack detection identifiers).
+// Stamps are sorted before hashing so that order differences are ignored.
+func hitDedupeKey(h *wallarm.HitObject) string {
+	stamps := make([]int, len(h.Stamps))
+	copy(stamps, h.Stamps)
+	sort.Ints(stamps)
+	return fmt.Sprintf("%s|%v|%v", h.Path, h.Point, stamps)
 }
 
 // buildHitMap converts a HitObject to the map format stored in Terraform state.
